@@ -54,7 +54,6 @@ impl Default for Style {
 }
 
 pub trait Terminal: Write {
-    fn clear_screen(&mut self) -> Result;
     fn clear_line(&mut self) -> Result;
 
     fn position_cursor(&mut self, col: u16, row: u16) -> Result;
@@ -69,9 +68,12 @@ pub trait Terminal: Write {
     fn set_bold(&mut self, bold: bool) -> Result;
     fn set_dimmed(&mut self, dimmed: bool) -> Result;
 
+    // Only used for testing.
+    #[cfg(test)]
     fn output(&self) -> &str;
 
     // Only used for testing.
+    #[cfg(test)]
     fn clear_output(&mut self);
 }
 
@@ -103,10 +105,6 @@ impl Write for AnsiTerminal {
 }
 
 impl Terminal for AnsiTerminal {
-    fn clear_screen(&mut self) -> Result {
-        write!(self, "\x1b[2J")
-    }
-
     fn clear_line(&mut self) -> Result {
         write!(self, "\x1b[2K")
     }
@@ -201,10 +199,12 @@ impl Terminal for AnsiTerminal {
         Ok(())
     }
 
+    #[cfg(test)]
     fn output(&self) -> &str {
         &self.output
     }
 
+    #[cfg(test)]
     fn clear_output(&mut self) {
         self.output.clear()
     }
@@ -262,7 +262,6 @@ pub mod test {
 
     #[rustfmt::skip]
     impl Terminal for TextOnlyTerminal {
-        fn clear_screen(&mut self) -> Result { Ok(()) }
         fn clear_line(&mut self) -> Result { Ok(()) }
         fn position_cursor(&mut self, _row: u16, _col: u16) -> Result { Ok(()) }
         fn position_cursor_col(&mut self, _col: u16) -> Result { Ok(()) }
@@ -273,7 +272,9 @@ pub mod test {
         fn set_inverted(&mut self, _inverted: bool) -> Result { Ok(()) }
         fn set_bold(&mut self, _bold: bool) -> Result { Ok(()) }
         fn set_dimmed(&mut self, _bold: bool) -> Result { Ok(()) }
+        #[cfg(test)]
         fn output(&self) -> &str { &self.output }
+        #[cfg(test)]
         fn clear_output(&mut self) { self.output.clear() }
     }
 
@@ -343,10 +344,6 @@ pub mod test {
     }
 
     impl Terminal for VisibleEscapesTerminal {
-        fn clear_screen(&mut self) -> Result {
-            Ok(())
-        }
-
         fn clear_line(&mut self) -> Result {
             Ok(())
         }
@@ -406,10 +403,12 @@ pub mod test {
             Ok(())
         }
 
+        #[cfg(test)]
         fn output(&self) -> &str {
             &self.output
         }
 
+        #[cfg(test)]
         fn clear_output(&mut self) {
             self.style = Style::default();
             self.pending_style = Style::default();
