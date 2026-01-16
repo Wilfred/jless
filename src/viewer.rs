@@ -124,8 +124,6 @@ pub enum Action {
     MoveFocusedLineToCenter,
     MoveFocusedLineToBottom,
 
-    Click(u16),
-
     ToggleCollapsed,
     CollapseNodeAndSiblings,
     DeepCollapseNodeAndSiblings,
@@ -176,7 +174,6 @@ impl JsonViewer {
             Action::MoveFocusedLineToTop => self.move_focused_line_to_top(),
             Action::MoveFocusedLineToCenter => self.move_focused_line_to_center(),
             Action::MoveFocusedLineToBottom => self.move_focused_line_to_bottom(),
-            Action::Click(n) => self.click_row(n),
             Action::ToggleCollapsed => self.toggle_collapsed(),
             Action::CollapseNodeAndSiblings => self.collapse_node_and_siblings(),
             Action::DeepCollapseNodeAndSiblings => self.deep_collapse_node_and_siblings(),
@@ -226,7 +223,6 @@ impl JsonViewer {
             Action::MoveFocusedLineToTop => false,
             Action::MoveFocusedLineToCenter => false,
             Action::MoveFocusedLineToBottom => false,
-            Action::Click(_) => true,
             Action::CollapseNodeAndSiblings => false,
             Action::DeepCollapseNodeAndSiblings => false,
             Action::ExpandNodeAndSiblings => false,
@@ -685,13 +681,6 @@ impl JsonViewer {
     fn move_focused_line_to_bottom(&mut self) {
         let padding = (self.dimensions.height - self.scrolloff() - 1) as usize;
         self.top_row = self.count_n_lines_before(self.focused_row, padding, self.mode);
-    }
-
-    fn click_row(&mut self, row: u16) {
-        self.focused_row = self.count_n_lines_past(self.top_row, (row - 1) as usize, self.mode);
-        if self.flatjson[self.focused_row].is_opening_of_container() {
-            self.toggle_collapsed();
-        }
     }
 
     fn toggle_collapsed(&mut self) {
@@ -1673,26 +1662,6 @@ mod tests {
                 (Action::MoveFocusedLineToBottom, 0, 6),
             ],
         );
-    }
-
-    #[test]
-    fn test_click_row() {
-        let fj = parse_top_level_json(OBJECT.to_owned()).unwrap();
-        let mut viewer = JsonViewer::new(fj, Mode::Line);
-        viewer.dimensions.height = 7;
-        viewer.scrolloff_setting = 3;
-
-        // Clicked on closing brace; doesn't collapse object
-        assert_window_tracking(&mut viewer, vec![(Action::Click(6), 2, 5)]);
-        assert!(viewer.flatjson[5].is_expanded());
-
-        assert_window_tracking(&mut viewer, vec![(Action::Click(1), 0, 2)]);
-        assert!(viewer.flatjson[2].is_collapsed());
-
-        assert_window_tracking(&mut viewer, vec![(Action::Click(3), 0, 2)]);
-        assert!(viewer.flatjson[2].is_expanded());
-
-        assert_window_tracking(&mut viewer, vec![(Action::Click(5), 1, 4)]);
     }
 
     #[test]

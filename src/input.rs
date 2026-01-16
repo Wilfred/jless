@@ -1,6 +1,6 @@
 use signal_hook::consts::SIGWINCH;
 use signal_hook::low_level::pipe;
-use termion::event::{parse_event, Event, Key, MouseEvent};
+use termion::event::{parse_event, Event, Key};
 
 use std::io;
 use std::io::{stdin, Read, Stdin};
@@ -195,8 +195,11 @@ impl TuiInput {
         match self.buffered_input.next() {
             Some(Ok(byte)) => match parse_event(byte, &mut self.buffered_input) {
                 Ok(Event::Key(k)) => Some(Ok(TuiEvent::KeyEvent(k))),
-                Ok(Event::Mouse(m)) => Some(Ok(TuiEvent::MouseEvent(m))),
                 Ok(Event::Unsupported(bytes)) => Some(Ok(TuiEvent::Unknown(bytes))),
+                Ok(Event::Mouse(_)) => {
+                    // Ignore mouse events
+                    self.get_event_from_buffered_input()
+                }
                 Err(err) => Some(Err(err)),
             },
             Some(Err(err)) => Some(Err(err)),
@@ -251,6 +254,5 @@ impl Iterator for TuiInput {
 pub enum TuiEvent {
     WinChEvent,
     KeyEvent(Key),
-    MouseEvent(MouseEvent),
     Unknown(Vec<u8>),
 }

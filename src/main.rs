@@ -13,7 +13,6 @@ use std::io::Read;
 
 use clap::Parser;
 use termion::cursor::HideCursor;
-use termion::input::MouseTerminal;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
 
@@ -61,9 +60,9 @@ fn main() {
     // sure rustyline gets the /dev/tty input.
     input::remap_dev_tty_to_stdin();
 
-    let stdout = Box::new(MouseTerminal::from(HideCursor::from(
+    let stdout = Box::new(HideCursor::from(
         AlternateScreen::from(io::stdout()),
-    ))) as Box<dyn std::io::Write>;
+    )) as Box<dyn std::io::Write>;
     let raw_stdout = stdout.into_raw_mode().unwrap();
 
     let mut app = match App::new(&opt, input_string, data_format, input_filename, raw_stdout) {

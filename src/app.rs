@@ -7,14 +7,12 @@ use clipboard::{ClipboardContext, ClipboardProvider};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use termion::event::Key;
-use termion::event::MouseButton::{Left, WheelDown, WheelUp};
-use termion::event::MouseEvent::Press;
 use termion::raw::RawTerminal;
 use termion::screen::{ToAlternateScreen, ToMainScreen};
 
 use crate::flatjson;
 use crate::input::TuiEvent;
-use crate::input::TuiEvent::{KeyEvent, MouseEvent, WinChEvent};
+use crate::input::TuiEvent::{KeyEvent, WinChEvent};
 use crate::jsonstringunescaper::{safe_unescape_json_string, UnescapeError};
 use crate::lineprinter::JS_IDENTIFIER;
 use crate::options::{DataFormat, Opt};
@@ -90,25 +88,7 @@ const HELP: &str = std::include_str!("./jless.help");
 pub const MAX_BUFFER_SIZE: usize = 9;
 const BELL: &str = "\x07";
 
-// https://docs.rs/termion/2.0.1/src/termion/input.rs.html#176-180
-//
-// The termion MouseTerminal sends the following escape codes:
-//
-// ESC [ ? 1000 h
-// ESC [ ? 1002 h
-// ESC [ ? 1015 h
-// ESC [ ? 1006 h
-//
-// https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
-//
-// 1000 enables better mouse support; 1002 enables button-event tracking,
-// then 1015 and 1006 change the format that mouse events are sent in.
-// (It seems like 1006 overrides 1015, but probably some legacy issue somewhere.)
-//
-// When we print stuff to the screen with 'p', we want to allow the user to
-// highlight it with their mouse, so we disable the regular mouse button tracking.
-const DISABLE_MOUSE_BUTTON_TRACKING: &str = "\x1b[?1002l";
-const ENABLE_MOUSE_BUTTON_TRACKING: &str = "\x1b[?1002h";
+
 
 impl App {
     pub fn new(
@@ -170,7 +150,6 @@ impl App {
             if self.input_state == InputState::WaitingForAnyKeyPress {
                 if matches!(event, KeyEvent(_)) {
                     let _ = write!(self.screen_writer.stdout, "{ToAlternateScreen}");
-                    let _ = write!(self.screen_writer.stdout, "{ENABLE_MOUSE_BUTTON_TRACKING}");
                     self.input_state = InputState::Default;
                     self.draw_screen();
                     self.message = None;
@@ -183,7 +162,6 @@ impl App {
             if matches!(event, KeyEvent(Key::Ctrl('z'))) {
                 // Restore terminal prior to suspending.
                 let _ = self.screen_writer.stdout.suspend_raw_mode();
-                let _ = write!(self.screen_writer.stdout, "{DISABLE_MOUSE_BUTTON_TRACKING}");
                 let _ = write!(self.screen_writer.stdout, "{ToMainScreen}");
                 let _ = write!(self.screen_writer.stdout, "{}", termion::cursor::Show);
                 let _ = self.screen_writer.stdout.flush();
@@ -193,7 +171,6 @@ impl App {
                 // Re-enable all the terminal settings.
                 let _ = write!(self.screen_writer.stdout, "{}", termion::cursor::Hide);
                 let _ = write!(self.screen_writer.stdout, "{ToAlternateScreen}");
-                let _ = write!(self.screen_writer.stdout, "{ENABLE_MOUSE_BUTTON_TRACKING}");
                 let _ = self.screen_writer.stdout.activate_raw_mode();
                 // I'm not exactly sure why we have to do this.
                 self.draw_screen();
@@ -527,26 +504,7 @@ impl App {
 
                     action
                 }
-                MouseEvent(me) => {
-                    self.input_buffer.clear();
 
-                    match me {
-                        Press(Left, _, h) => {
-                            // Ignore clicks on status bar or below.
-                            if h > self.screen_writer.dimensions.without_status_bar().height {
-                                continue;
-                            } else {
-                                Some(Action::Click(h))
-                            }
-                        }
-                        Press(WheelUp, _, _) => Some(Action::ScrollUp(3)),
-                        Press(WheelDown, _, _) => Some(Action::ScrollDown(3)),
-                        // Ignore all other mouse events and don't redraw the screen.
-                        _ => {
-                            continue;
-                        }
-                    }
-                }
                 TuiEvent::Unknown(bytes) => {
                     self.set_error_message(format!("Unknown byte sequence: {bytes:?}"));
                     None
@@ -919,9 +877,6 @@ impl App {
                 let _ = self.screen_writer.stdout.suspend_raw_mode();
                 // Go to the main screen so that the text will persist after exiting.
                 let _ = write!(self.screen_writer.stdout, "{ToMainScreen}");
-                // Disable mouse button tracking so that the user can use their mouse
-                // to highlight the text.
-                let _ = write!(self.screen_writer.stdout, "{DISABLE_MOUSE_BUTTON_TRACKING}");
                 let _ = write!(
                     self.screen_writer.stdout,
                     "{}{}{}\n\nPress any key to continue.",

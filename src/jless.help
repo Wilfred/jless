@@ -95,9 +95,7 @@
 
       Alternatively, you can print out values using 'p'. This is useful for
       viewing long string values all at once, or if the clipboard functionality
-      is not working; mouse-tracking will be temporarily disabled, allowing you
-      to use your terminal's native clipboard capabilities to select and copy
-      the desired text.
+      is not working.
 
   yy pp   Copy/print the currently focused value, pretty printed. When focused
             on the key/value pair of an object, this will [4mnot[0m include the key.
